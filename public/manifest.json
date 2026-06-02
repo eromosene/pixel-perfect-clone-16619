@@ -1,0 +1,16 @@
+{
+  "name": "Enigma College",
+  "short_name": "Enigma",
+  "description": "Enigma College school management portal",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#F5F6FA",
+  "theme_color": "#1B2B4B",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
