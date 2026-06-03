@@ -138,12 +138,6 @@ function ClassDialog({
   const [level, setLevel] = useState("");
   const [arm, setArm] = useState("");
 
-  // Reset form when dialog opens
-  useState(() => {});
-  if (open && editing && name !== editing.name && !document.activeElement?.tagName.match(/input/i)) {
-    // noop guard; we sync below via key in DialogContent
-  }
-
   const save = useMutation({
     mutationFn: async () => {
       const payload = { name, level: level || null, arm: arm || null };
