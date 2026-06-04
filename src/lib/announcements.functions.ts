@@ -9,23 +9,14 @@ export const listAnnouncements = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("announcements")
-      .select("id, title, content, target_role, is_pinned, created_at, author_id, profiles:profiles!announcements_author_id_fkey(name)")
+      .select("id, title, content, target_role, is_pinned, created_at, author_id")
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(100);
-    if (error) {
-      // Fallback if FK alias name differs
-      const fb = await context.supabase
-        .from("announcements")
-        .select("id, title, content, target_role, is_pinned, created_at, author_id")
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (fb.error) throw new Error(fb.error.message);
-      return fb.data ?? [];
-    }
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
+
 
 const input = z.object({
   title: z.string().min(1).max(200),
