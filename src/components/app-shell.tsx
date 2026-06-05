@@ -28,10 +28,12 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { to: "/dashboard", label: "Home", icon: Home },
+  { to: "/portal", label: "My Portal", icon: Home, roles: ["parent", "student"] },
   { to: "/students", label: "Students", icon: Users, roles: ["admin", "teacher"] },
   { to: "/classes", label: "Classes", icon: GraduationCap, roles: ["admin", "teacher"] },
   { to: "/subjects", label: "Subjects", icon: BookOpen, roles: ["admin", "teacher"] },
   { to: "/terms", label: "Terms", icon: GraduationCap, roles: ["admin"] },
+  { to: "/parents", label: "Parents", icon: Users, roles: ["admin"] },
   { to: "/attendance", label: "Attendance", icon: ClipboardCheck, roles: ["admin", "teacher"] },
   { to: "/scores", label: "Scores", icon: FileText, roles: ["admin", "teacher"] },
   { to: "/results", label: "Results", icon: GraduationCap },
