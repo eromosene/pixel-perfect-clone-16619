@@ -115,14 +115,13 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    // Invalidate router + query cache on any auth state change.
-    let isFirst = true;
-    const { data } = supabase.auth.onAuthStateChange(() => {
-      if (isFirst) {
-        isFirst = false;
-        return;
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
+      } else {
+        queryClient.invalidateQueries();
       }
-      queryClient.invalidateQueries();
     });
     return () => data.subscription.unsubscribe();
   }, [queryClient]);
