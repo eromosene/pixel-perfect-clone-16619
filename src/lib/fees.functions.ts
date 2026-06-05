@@ -104,9 +104,18 @@ export const listParentLinks = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("parent_students")
-      .select("id, parent_id, student_id, relation, students(first_name, last_name, admission_no), profiles!parent_students_parent_id_fkey(name, email)");
+      .select("id, parent_id, student_id, relation, students(first_name, last_name, admission_no)");
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const parentIds = Array.from(new Set((data ?? []).map((r) => r.parent_id)));
+    let parents: Record<string, { name: string | null; email: string | null }> = {};
+    if (parentIds.length) {
+      const { data: profs } = await context.supabase
+        .from("profiles")
+        .select("id, name, email")
+        .in("id", parentIds);
+      for (const p of profs ?? []) parents[p.id] = { name: p.name, email: p.email };
+    }
+    return (data ?? []).map((r) => ({ ...r, parent: parents[r.parent_id] ?? null }));
   });
 
 export const linkParentStudent = createServerFn({ method: "POST" })
