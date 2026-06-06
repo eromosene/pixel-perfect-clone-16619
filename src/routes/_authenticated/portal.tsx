@@ -48,38 +48,72 @@ function PortalPage() {
       />
 
       {isParent && (
-        <section>
-          <h2 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" />My Children</h2>
-          {children.data && children.data.length === 0 && (
-            <Card className="p-6 text-sm text-muted-foreground text-center">
-              No children linked yet. Ask the school admin to link your account.
-            </Card>
-          )}
-          <div className="grid gap-3">
-            {(children.data ?? []).map((c: any) => (
-              <Card key={c.id} className="p-4 flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-secondary grid place-items-center text-secondary-foreground font-bold">
-                  {(c.students?.first_name?.[0] ?? "") + (c.students?.last_name?.[0] ?? "")}
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold">
-                    {c.students?.last_name}, {c.students?.first_name}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {c.students?.admission_no} · {c.students?.classes?.name ?? "No class"} · {c.relation}
-                  </div>
-                </div>
-                <Link
-                  to="/results"
-                  className="text-xs font-semibold text-primary"
-                >
-                  Results →
-                </Link>
+        <>
+          <section>
+            <h2 className="font-semibold mb-2 flex items-center gap-2"><Users className="h-4 w-4" />My Children</h2>
+            {children.data && children.data.length === 0 && (
+              <Card className="p-6 text-sm text-muted-foreground text-center">
+                No children linked yet. Use the form below to link your child by admission number.
               </Card>
-            ))}
-          </div>
-        </section>
+            )}
+            <div className="grid gap-3">
+              {(children.data ?? []).map((c: any) => (
+                <Card key={c.id} className="p-4 flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-secondary grid place-items-center text-secondary-foreground font-bold">
+                    {(c.students?.first_name?.[0] ?? "") + (c.students?.last_name?.[0] ?? "")}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold">
+                      {c.students?.last_name}, {c.students?.first_name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {c.students?.admission_no} · {c.students?.classes?.name ?? "No class"} · {c.relation}
+                    </div>
+                  </div>
+                  <Link to="/results" className="text-xs font-semibold text-primary">
+                    Results →
+                  </Link>
+                </Card>
+              ))}
+            </div>
+          </section>
+
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4 text-primary" />
+              <h2 className="font-semibold">Link a child</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Enter your child's admission number to link them to your account.
+            </p>
+            <div className="grid sm:grid-cols-[1fr_140px_auto] gap-2">
+              <div>
+                <Label className="sr-only">Admission number</Label>
+                <Input
+                  placeholder="Admission no."
+                  value={admissionNo}
+                  onChange={(e) => setAdmissionNo(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="sr-only">Relation</Label>
+                <Input
+                  placeholder="Relation"
+                  value={relation}
+                  onChange={(e) => setRelation(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={() => linkM.mutate({ admission_no: admissionNo.trim(), relation: relation.trim() || "Parent" })}
+                disabled={!admissionNo.trim() || linkM.isPending}
+              >
+                {linkM.isPending ? "Linking…" : "Link"}
+              </Button>
+            </div>
+          </Card>
+        </>
       )}
+
 
       <section>
         <h2 className="font-semibold mb-2 flex items-center gap-2"><Wallet className="h-4 w-4" />Fees</h2>
