@@ -1,14 +1,25 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { GraduationCap } from "lucide-react";
 
+const SIGNUP_ROLES = ["teacher", "student", "parent"] as const;
+type SignupRole = (typeof SIGNUP_ROLES)[number];
+
+const searchSchema = z.object({
+  role: z.enum(SIGNUP_ROLES).optional(),
+  mode: z.enum(["signin", "signup"]).optional(),
+});
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
       { title: "Sign in — Enigma College" },
@@ -18,9 +29,19 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const ROLE_LABEL: Record<SignupRole, string> = {
+  teacher: "Teacher",
+  student: "Student",
+  parent: "Parent / Guardian",
+};
+
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const search = useSearch({ from: "/auth" });
+  const signupRole: SignupRole | undefined = search.role;
+  const [mode, setMode] = useState<"signin" | "signup">(
+    search.mode ?? (signupRole ? "signup" : "signin"),
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -46,7 +67,10 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { name },
+            data: {
+              name,
+              ...(signupRole ? { signup_role: signupRole } : {}),
+            },
           },
         });
         if (error) throw error;
@@ -78,6 +102,15 @@ function AuthPage() {
         </div>
 
         <Card className="p-6 shadow-elevated">
+          {signupRole && mode === "signup" && (
+            <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm flex items-center gap-2">
+              <Badge variant="secondary">{ROLE_LABEL[signupRole]}</Badge>
+              <span className="text-muted-foreground">
+                You're signing up as a {ROLE_LABEL[signupRole].toLowerCase()}.
+              </span>
+            </div>
+          )}
+
           <div className="flex gap-1 p-1 bg-muted rounded-lg mb-6">
             <button
               type="button"
@@ -134,9 +167,12 @@ function AuthPage() {
             </Button>
           </form>
 
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            The first account becomes the school administrator.
-          </p>
+          {mode === "signup" && !signupRole && (
+            <p className="text-xs text-muted-foreground text-center mt-4">
+              The first account becomes the school administrator. Otherwise new accounts default
+              to the student role — ask your school for a teacher or parent signup link.
+            </p>
+          )}
         </Card>
       </div>
     </div>
