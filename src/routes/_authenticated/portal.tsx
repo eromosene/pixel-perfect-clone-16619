@@ -1,10 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { listMyChildren, listFees } from "@/lib/fees.functions";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { listMyChildren, listFees, parentSelfLink } from "@/lib/fees.functions";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { GraduationCap, Wallet, FileText, Users } from "lucide-react";
+import { GraduationCap, Wallet, FileText, Users, Link as LinkIcon } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/portal")({
   head: () => ({ meta: [{ title: "My Portal — Enigma College" }] }),
@@ -12,13 +17,26 @@ export const Route = createFileRoute("/_authenticated/portal")({
 });
 
 function PortalPage() {
+  const qc = useQueryClient();
   const { data: user } = useCurrentUser();
+  const [admissionNo, setAdmissionNo] = useState("");
+  const [relation, setRelation] = useState("Parent");
   const children = useQuery({
     queryKey: ["my-children"],
     queryFn: () => listMyChildren(),
     enabled: user.roles.includes("parent"),
   });
   const fees = useQuery({ queryKey: ["fees"], queryFn: () => listFees({ data: {} }) });
+
+  const linkM = useMutation({
+    mutationFn: (d: { admission_no: string; relation: string }) => parentSelfLink({ data: d }),
+    onSuccess: (res: any) => {
+      toast.success(`Linked to ${res.student?.first_name} ${res.student?.last_name}`);
+      setAdmissionNo("");
+      qc.invalidateQueries({ queryKey: ["my-children"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const isParent = user.roles.includes("parent");
 
