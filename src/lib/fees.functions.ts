@@ -152,3 +152,77 @@ export const unlinkParentStudent = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Parent self-links to their own child using admission number
+export const parentSelfLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      admission_no: z.string().min(1).max(50),
+      relation: z.string().min(1).max(50).default("Parent"),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: roles } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (!(roles ?? []).some((r) => r.role === "parent")) {
+      throw new Error("Only parent accounts can self-link. Ask an admin to assign your role.");
+    }
+    const { data: student, error: sErr } = await context.supabase
+      .from("students")
+      .select("id, first_name, last_name")
+      .eq("admission_no", data.admission_no)
+      .maybeSingle();
+    if (sErr) throw new Error(sErr.message);
+    if (!student) throw new Error("No student found with that admission number.");
+    const { error } = await context.supabase.from("parent_students").insert({
+      parent_id: context.userId,
+      student_id: student.id,
+      relation: data.relation,
+    });
+    if (error) {
+      if ((error as any).code === "23505") throw new Error("You are already linked to this student.");
+      throw new Error(error.message);
+    }
+    return { ok: true, student };
+  });
+
+// Admin/teacher creates a student or parent account directly (auto-confirmed)
+export const adminCreateAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      email: z.string().email(),
+      name: z.string().min(1).max(120),
+      role: z.enum(["teacher", "student", "parent"]),
+      password: z.string().min(8).max(72).optional(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: roles } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    const isAdmin = (roles ?? []).some((r) => r.role === "admin");
+    const isTeacher = (roles ?? []).some((r) => r.role === "teacher");
+    if (!isAdmin && !isTeacher) throw new Error("Forbidden");
+    if (!isAdmin && data.role === "teacher") {
+      throw new Error("Only admins can create teacher accounts.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const password =
+      data.password ??
+      `${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 6).toUpperCase()}!`;
+
+    const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password,
+      email_confirm: true,
+      user_metadata: { name: data.name, signup_role: data.role },
+    });
+    if (cErr) throw new Error(cErr.message);
+    return { ok: true, user_id: created.user?.id, temp_password: password };
+  });
