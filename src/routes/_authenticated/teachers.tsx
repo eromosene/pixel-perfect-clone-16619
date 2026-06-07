@@ -39,13 +39,16 @@ function TeachersPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-6">
-      <PageHeader title="Teachers" icon={UserCheck}>
-        <Button asChild size="sm">
-          <Link to="/parents" search={{ tab: "create" }}>
-            <Plus className="h-4 w-4 mr-1" /> Add teacher
-          </Link>
-        </Button>
-      </PageHeader>
+      <PageHeader
+        title="Teachers"
+        action={
+          <Button asChild size="sm">
+            <Link to="/parents" search={{ tab: "create" }}>
+              <Plus className="h-4 w-4 mr-1" /> Add teacher
+            </Link>
+          </Button>
+        }
+      />
 
       {isLoading ? (
         <div className="space-y-3">
