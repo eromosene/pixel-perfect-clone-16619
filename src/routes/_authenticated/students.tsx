@@ -302,6 +302,62 @@ function StudentDialog({
               onChange={(e) => setForm({ ...form, other_name: e.target.value })}
             />
           </div>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="h-16 w-16 rounded-full bg-secondary text-primary grid place-items-center text-sm font-bold overflow-hidden border-2 border-border hover:border-primary transition flex-shrink-0"
+              disabled={uploading}
+            >
+              {form.photo ? (
+                <img src={form.photo} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Camera className="h-5 w-5" />
+              )}
+              {uploading && (
+                <div className="absolute inset-0 bg-black/40 grid place-items-center rounded-full">
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                </div>
+              )}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 2 * 1024 * 1024) {
+                  toast.error("Image must be under 2MB");
+                  return;
+                }
+                setUploading(true);
+                try {
+                  const ext = file.name.split(".").pop() || "jpg";
+                  const path = `students/${editing?.id ?? "new"}_${Date.now()}.${ext}`;
+                  const { token } = await fetchUpload({
+                    data: { bucket: "avatars", path, contentType: file.type },
+                  });
+                  const { error } = await supabase.storage
+                    .from("avatars")
+                    .uploadToSignedUrl(path, token, file);
+                  if (error) throw error;
+                  const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(path);
+                  setForm((prev) => ({ ...prev, photo: publicData.publicUrl }));
+                  toast.success("Photo uploaded");
+                } catch (err: any) {
+                  toast.error(err?.message || "Upload failed");
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
+            <div className="text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">Student photo</p>
+              <p>Tap to upload. Max 2MB.</p>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Gender</Label>
