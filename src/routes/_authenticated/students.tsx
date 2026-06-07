@@ -252,6 +252,7 @@ function StudentDialog({
             date_of_birth: editing?.date_of_birth ?? "",
             class_id: editing?.class_id ?? "",
             address: editing?.address ?? "",
+            photo: editing?.photo ?? "",
             is_active: editing?.is_active ?? true,
           });
         }
