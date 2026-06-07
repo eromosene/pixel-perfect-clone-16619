@@ -51,6 +51,7 @@ type StudentRow = {
   class_id: string | null;
   address: string | null;
   is_active: boolean;
+  photo: string | null;
   classes: { name: string } | null;
 };
 
