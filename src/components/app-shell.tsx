@@ -45,6 +45,7 @@ const NAV: NavItem[] = [
 ];
 
 function ShellInner({ children }: { children: ReactNode }) {
+  const { data: user } = useCurrentUser();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
 
