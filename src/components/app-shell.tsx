@@ -3,6 +3,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   Home,
   Users,
+  UserCheck,
   ClipboardCheck,
   GraduationCap,
   Megaphone,
@@ -30,6 +31,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard", label: "Home", icon: Home },
   { to: "/portal", label: "My Portal", icon: Home, roles: ["parent", "student"] },
   { to: "/students", label: "Students", icon: Users, roles: ["admin", "teacher"] },
+  { to: "/teachers", label: "Teachers", icon: UserCheck, roles: ["admin"] },
   { to: "/classes", label: "Classes", icon: GraduationCap, roles: ["admin", "teacher"] },
   { to: "/subjects", label: "Subjects", icon: BookOpen, roles: ["admin", "teacher"] },
   { to: "/terms", label: "Terms", icon: GraduationCap, roles: ["admin"] },
@@ -41,7 +43,6 @@ const NAV: NavItem[] = [
   { to: "/fees", label: "Fees", icon: Wallet, roles: ["admin", "parent"] },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
-
 
 function ShellInner({ children }: { children: ReactNode }) {
   const { data: user } = useCurrentUser();

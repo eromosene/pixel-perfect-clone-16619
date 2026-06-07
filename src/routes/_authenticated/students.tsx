@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listStudents,
@@ -10,6 +10,9 @@ import {
   updateStudent,
   deleteStudent,
 } from "@/lib/academics.functions";
+import { getUploadUrl } from "@/lib/upload.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -48,6 +51,7 @@ type StudentRow = {
   class_id: string | null;
   address: string | null;
   is_active: boolean;
+  photo: string | null;
   classes: { name: string } | null;
 };
 
@@ -125,8 +129,12 @@ function StudentsPage() {
           const initials = `${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase();
           return (
             <div key={s.id} className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-secondary text-primary grid place-items-center text-sm font-bold flex-shrink-0">
-                {initials}
+              <div className="h-10 w-10 rounded-full bg-secondary text-primary grid place-items-center text-sm font-bold flex-shrink-0 overflow-hidden">
+                {s.photo ? (
+                  <img src={s.photo} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initials
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-semibold truncate">
@@ -198,8 +206,12 @@ function StudentDialog({
     date_of_birth: "",
     class_id: "",
     address: "",
+    photo: "",
     is_active: true,
   });
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const fetchUpload = useServerFn(getUploadUrl);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -240,6 +252,7 @@ function StudentDialog({
             date_of_birth: editing?.date_of_birth ?? "",
             class_id: editing?.class_id ?? "",
             address: editing?.address ?? "",
+            photo: editing?.photo ?? "",
             is_active: editing?.is_active ?? true,
           });
         }
@@ -288,6 +301,62 @@ function StudentDialog({
               value={form.other_name}
               onChange={(e) => setForm({ ...form, other_name: e.target.value })}
             />
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="h-16 w-16 rounded-full bg-secondary text-primary grid place-items-center text-sm font-bold overflow-hidden border-2 border-border hover:border-primary transition flex-shrink-0"
+              disabled={uploading}
+            >
+              {form.photo ? (
+                <img src={form.photo} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Camera className="h-5 w-5" />
+              )}
+              {uploading && (
+                <div className="absolute inset-0 bg-black/40 grid place-items-center rounded-full">
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                </div>
+              )}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 2 * 1024 * 1024) {
+                  toast.error("Image must be under 2MB");
+                  return;
+                }
+                setUploading(true);
+                try {
+                  const ext = file.name.split(".").pop() || "jpg";
+                  const path = `students/${editing?.id ?? "new"}_${Date.now()}.${ext}`;
+                  const { token } = await fetchUpload({
+                    data: { bucket: "avatars", path, contentType: file.type },
+                  });
+                  const { error } = await supabase.storage
+                    .from("avatars")
+                    .uploadToSignedUrl(path, token, file);
+                  if (error) throw error;
+                  const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(path);
+                  setForm((prev) => ({ ...prev, photo: publicData.publicUrl }));
+                  toast.success("Photo uploaded");
+                } catch (err: any) {
+                  toast.error(err?.message || "Upload failed");
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
+            <div className="text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">Student photo</p>
+              <p>Tap to upload. Max 2MB.</p>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

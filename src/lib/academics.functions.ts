@@ -198,6 +198,7 @@ const studentInput = z.object({
   date_of_birth: z.string().optional().nullable(),
   class_id: z.string().uuid().optional().nullable(),
   address: z.string().max(500).optional().nullable(),
+  photo: z.string().optional().nullable(),
   is_active: z.boolean().default(true),
 });
 
