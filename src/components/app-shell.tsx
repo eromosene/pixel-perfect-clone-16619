@@ -42,9 +42,7 @@ const NAV: NavItem[] = [
   { to: "/announcements", label: "News", icon: Megaphone },
   { to: "/fees", label: "Fees", icon: Wallet, roles: ["admin", "parent"] },
   { to: "/settings", label: "Settings", icon: Settings },
-
-
-function ShellInner({ children }: { children: ReactNode }) {
+];
   const { data: user } = useCurrentUser();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
