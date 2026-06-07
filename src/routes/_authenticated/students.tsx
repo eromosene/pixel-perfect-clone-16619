@@ -129,8 +129,12 @@ function StudentsPage() {
           const initials = `${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase();
           return (
             <div key={s.id} className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-secondary text-primary grid place-items-center text-sm font-bold flex-shrink-0">
-                {initials}
+              <div className="h-10 w-10 rounded-full bg-secondary text-primary grid place-items-center text-sm font-bold flex-shrink-0 overflow-hidden">
+                {s.photo ? (
+                  <img src={s.photo} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initials
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-semibold truncate">
