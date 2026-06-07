@@ -43,7 +43,8 @@ const NAV: NavItem[] = [
   { to: "/fees", label: "Fees", icon: Wallet, roles: ["admin", "parent"] },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
-  const { data: user } = useCurrentUser();
+
+function ShellInner({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
 
