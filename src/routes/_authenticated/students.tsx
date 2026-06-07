@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listStudents,
@@ -10,6 +10,9 @@ import {
   updateStudent,
   deleteStudent,
 } from "@/lib/academics.functions";
+import { getUploadUrl } from "@/lib/upload.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
