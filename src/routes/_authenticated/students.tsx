@@ -206,8 +206,12 @@ function StudentDialog({
     date_of_birth: "",
     class_id: "",
     address: "",
+    photo: "",
     is_active: true,
   });
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const fetchUpload = useServerFn(getUploadUrl);
 
   const save = useMutation({
     mutationFn: async () => {
