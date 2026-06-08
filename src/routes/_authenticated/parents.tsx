@@ -94,9 +94,26 @@ function ParentsPage() {
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const signupUrl = (role: string) => `${origin}/auth?role=${role}&mode=signup`;
-  const copyLink = (role: string) => {
-    navigator.clipboard.writeText(signupUrl(role));
-    toast.success(`${role} signup link copied`);
+  const copyLink = async (role: string) => {
+    const url = signupUrl(role);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      toast.success(`${role} signup link copied`);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
   };
 
   return (
