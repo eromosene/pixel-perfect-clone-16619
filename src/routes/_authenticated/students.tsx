@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/page-header";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { SignupLinkCard, CreateAccountButton } from "@/components/account-tools";
 
 export const Route = createFileRoute("/_authenticated/students")({
   head: () => ({ meta: [{ title: "Students — Enigma College" }] }),
@@ -90,25 +91,30 @@ function StudentsPage() {
   });
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8">
+    <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-4">
       <PageHeader
         title="Students"
-        description="School roll. Admins can add and edit."
+        description="School roll. Admins can add records and create student login accounts."
         action={
           isAdmin && (
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4 mr-1" /> New
-            </Button>
+            <div className="flex gap-2">
+              <CreateAccountButton role="student" label="Student" />
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-1" /> New record
+              </Button>
+            </div>
           )
         }
       />
 
-      <div className="relative mb-4">
+      {isAdmin && <SignupLinkCard role="student" label="Student" />}
+
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           className="pl-9"
