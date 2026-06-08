@@ -217,7 +217,14 @@ function ParentsPage() {
             {SIGNUP_ROLES.filter((r) => isAdmin || r.key !== "teacher").map((r) => (
               <div key={r.key} className="flex items-center gap-2 rounded-md border p-2">
                 <Badge variant="secondary" className="capitalize">{r.label}</Badge>
-                <code className="flex-1 truncate text-xs text-muted-foreground">{signupUrl(r.key)}</code>
+                <a
+                  href={signupUrl(r.key)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 truncate text-xs text-primary underline underline-offset-2"
+                >
+                  {signupUrl(r.key)}
+                </a>
                 <Button size="sm" variant="ghost" onClick={() => copyLink(r.key)}>
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
