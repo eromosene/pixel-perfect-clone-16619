@@ -94,9 +94,26 @@ function ParentsPage() {
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const signupUrl = (role: string) => `${origin}/auth?role=${role}&mode=signup`;
-  const copyLink = (role: string) => {
-    navigator.clipboard.writeText(signupUrl(role));
-    toast.success(`${role} signup link copied`);
+  const copyLink = async (role: string) => {
+    const url = signupUrl(role);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      toast.success(`${role} signup link copied`);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
   };
 
   return (
@@ -200,7 +217,14 @@ function ParentsPage() {
             {SIGNUP_ROLES.filter((r) => isAdmin || r.key !== "teacher").map((r) => (
               <div key={r.key} className="flex items-center gap-2 rounded-md border p-2">
                 <Badge variant="secondary" className="capitalize">{r.label}</Badge>
-                <code className="flex-1 truncate text-xs text-muted-foreground">{signupUrl(r.key)}</code>
+                <a
+                  href={signupUrl(r.key)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 truncate text-xs text-primary underline underline-offset-2"
+                >
+                  {signupUrl(r.key)}
+                </a>
                 <Button size="sm" variant="ghost" onClick={() => copyLink(r.key)}>
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
