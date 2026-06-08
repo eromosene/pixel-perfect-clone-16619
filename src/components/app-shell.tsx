@@ -13,6 +13,7 @@ import {
   Menu,
   BookOpen,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ const NAV: NavItem[] = [
   { to: "/results", label: "Results", icon: GraduationCap },
   { to: "/announcements", label: "News", icon: Megaphone },
   { to: "/fees", label: "Fees", icon: Wallet, roles: ["admin", "parent"] },
+  { to: "/users", label: "Users", icon: ShieldCheck, roles: ["admin"] },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
