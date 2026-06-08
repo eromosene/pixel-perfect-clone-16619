@@ -1,13 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listTeachers, removeTeacherRole } from "@/lib/teachers.functions";
+import { setAdminRole, setUserActive } from "@/lib/users.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
-import { UserCheck, Trash2, Plus } from "lucide-react";
+import { UserCheck, Trash2, Shield, ShieldOff } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { SignupLinkCard, CreateAccountButton } from "@/components/account-tools";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/_authenticated/teachers")({
   head: () => ({ meta: [{ title: "Teachers — Enigma College" }] }),
@@ -16,24 +22,59 @@ export const Route = createFileRoute("/_authenticated/teachers")({
 
 function TeachersPage() {
   const queryClient = useQueryClient();
+  const { data: me } = useCurrentUser();
+  const isAdmin = me.roles.includes("admin");
   const fetchTeachers = useServerFn(listTeachers);
   const removeFn = useServerFn(removeTeacherRole);
+  const adminFn = useServerFn(setAdminRole);
+  const activeFn = useServerFn(setUserActive);
   const { data: teachers = [], isLoading } = useQuery({
     queryKey: ["teachers"],
     queryFn: () => fetchTeachers(),
   });
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function refresh() {
+    await queryClient.invalidateQueries({ queryKey: ["teachers"] });
+  }
 
   async function handleRemove(userId: string) {
-    setRemovingId(userId);
+    if (!confirm("Remove teacher role from this user?")) return;
+    setBusyId(userId);
     try {
       await removeFn({ data: { user_id: userId } });
-      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      await refresh();
       toast.success("Teacher role removed");
     } catch (e: any) {
-      toast.error(e?.message || "Failed to remove");
+      toast.error(e?.message || "Failed");
     } finally {
-      setRemovingId(null);
+      setBusyId(null);
+    }
+  }
+
+  async function toggleAdmin(userId: string, makeAdmin: boolean) {
+    setBusyId(userId);
+    try {
+      await adminFn({ data: { user_id: userId, make_admin: makeAdmin } });
+      await refresh();
+      toast.success(makeAdmin ? "Promoted to admin" : "Admin role removed");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function toggleActive(userId: string, active: boolean) {
+    setBusyId(userId);
+    try {
+      await activeFn({ data: { user_id: userId, active } });
+      await refresh();
+      toast.success(active ? "Account activated" : "Account deactivated");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -41,14 +82,11 @@ function TeachersPage() {
     <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-6">
       <PageHeader
         title="Teachers"
-        action={
-          <Button asChild size="sm">
-            <Link to="/parents" search={{ tab: "create" }}>
-              <Plus className="h-4 w-4 mr-1" /> Add teacher
-            </Link>
-          </Button>
-        }
+        description="Manage teacher accounts, admin roles, and account access."
+        action={isAdmin && <CreateAccountButton role="teacher" label="Teacher" onCreated={refresh} />}
       />
+
+      {isAdmin && <SignupLinkCard role="teacher" label="Teacher" />}
 
       {isLoading ? (
         <div className="space-y-3">
@@ -61,39 +99,73 @@ function TeachersPage() {
           <UserCheck className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
           <h3 className="font-semibold">No teachers yet</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Use the signup link or create an account on the Parents page.
+            Share the signup link above or create an account.
           </p>
-          <Button asChild className="mt-4" variant="outline">
-            <Link to="/parents">Go to account creation</Link>
-          </Button>
         </Card>
       ) : (
         <div className="space-y-3">
-          {teachers.map((t) => (
-            <Card key={t.id} className="p-4 flex items-center justify-between shadow-card">
+          {teachers.map((t: any) => (
+            <Card key={t.id} className="p-4 space-y-3 shadow-card">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-secondary text-primary grid place-items-center text-sm font-bold">
-                  {(t.name || t.email || "?")
-                    .split(" ")
-                    .map((p: string) => p[0])
-                    .slice(0, 2)
-                    .join("")
-                    .toUpperCase()}
+                <div className="h-10 w-10 rounded-full bg-secondary text-primary grid place-items-center text-sm font-bold overflow-hidden flex-shrink-0">
+                  {t.avatar ? (
+                    <img src={t.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    (t.name || t.email || "?")
+                      .split(" ")
+                      .map((p: string) => p[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase()
+                  )}
                 </div>
-                <div>
-                  <div className="font-medium">{t.name || "Unnamed"}</div>
-                  <div className="text-xs text-muted-foreground">{t.email}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium flex items-center gap-2">
+                    <span className="truncate">{t.name || "Unnamed"}</span>
+                    {t.is_admin && <Badge>Admin</Badge>}
+                    {!t.is_active && <Badge variant="destructive">Inactive</Badge>}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">{t.email}</div>
                 </div>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemove(t.id)}
+                    disabled={busyId === t.id}
+                    aria-label="Remove teacher role"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemove(t.id)}
-                disabled={removingId === t.id}
-                aria-label="Remove teacher role"
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              {isAdmin && (
+                <div className="flex flex-wrap gap-2 pt-2 border-t">
+                  <Button
+                    size="sm"
+                    variant={t.is_admin ? "outline" : "secondary"}
+                    disabled={busyId === t.id}
+                    onClick={() => toggleAdmin(t.id, !t.is_admin)}
+                  >
+                    {t.is_admin ? (
+                      <><ShieldOff className="h-3.5 w-3.5 mr-1" /> Revoke admin</>
+                    ) : (
+                      <><Shield className="h-3.5 w-3.5 mr-1" /> Make admin</>
+                    )}
+                  </Button>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <Label htmlFor={`active-${t.id}`} className="text-xs text-muted-foreground">
+                      {t.is_active ? "Active" : "Inactive"}
+                    </Label>
+                    <Switch
+                      id={`active-${t.id}`}
+                      checked={t.is_active}
+                      disabled={busyId === t.id || t.id === me.id}
+                      onCheckedChange={(v) => toggleActive(t.id, v)}
+                    />
+                  </div>
+                </div>
+              )}
             </Card>
           ))}
         </div>

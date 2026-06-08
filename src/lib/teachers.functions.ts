@@ -8,18 +8,24 @@ export const listTeachers = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("user_roles")
       .select("user_id, role")
-      .eq("role", "teacher");
+      .in("role", ["teacher", "admin"]);
     if (error) throw new Error(error.message);
-    const ids = (data ?? []).map((r) => r.user_id);
-    let profiles: Record<string, { name: string | null; email: string | null; avatar: string | null }> = {};
-    if (ids.length) {
-      const { data: profs } = await context.supabase
-        .from("profiles")
-        .select("id, name, email, avatar")
-        .in("id", ids);
-      for (const p of profs ?? []) profiles[p.id] = { name: p.name, email: p.email, avatar: p.avatar };
+    const byUser: Record<string, { is_teacher: boolean; is_admin: boolean }> = {};
+    for (const r of data ?? []) {
+      const u = (byUser[r.user_id] ||= { is_teacher: false, is_admin: false });
+      if (r.role === "teacher") u.is_teacher = true;
+      if (r.role === "admin") u.is_admin = true;
     }
-    return (data ?? []).map((r) => ({ id: r.user_id, ...profiles[r.user_id] }));
+    const ids = Object.keys(byUser).filter((id) => byUser[id].is_teacher);
+    if (!ids.length) return [];
+    const { data: profs } = await context.supabase
+      .from("profiles")
+      .select("id, name, email, avatar, is_active")
+      .in("id", ids);
+    return (profs ?? []).map((p: any) => ({
+      ...p,
+      is_admin: byUser[p.id]?.is_admin ?? false,
+    }));
   });
 
 export const removeTeacherRole = createServerFn({ method: "POST" })

@@ -1,21 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Unlink, Users, Copy, UserPlus, Link as LinkIcon } from "lucide-react";
+import { Plus, Unlink, Users } from "lucide-react";
 import { toast } from "sonner";
 import { listStudents } from "@/lib/academics.functions";
 import {
   listParentLinks,
   linkParentStudent,
   unlinkParentStudent,
-  adminCreateAccount,
 } from "@/lib/fees.functions";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -32,17 +30,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/page-header";
+import { SignupLinkCard, CreateAccountButton } from "@/components/account-tools";
 
 export const Route = createFileRoute("/_authenticated/parents")({
   head: () => ({ meta: [{ title: "Parents — Enigma College" }] }),
   component: ParentsPage,
 });
-
-const SIGNUP_ROLES = [
-  { key: "teacher", label: "Teacher" },
-  { key: "student", label: "Student" },
-  { key: "parent", label: "Parent" },
-] as const;
 
 function ParentsPage() {
   const qc = useQueryClient();
@@ -52,13 +45,7 @@ function ParentsPage() {
   const canManage = isAdmin || isTeacher;
 
   const [linkOpen, setLinkOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
   const [linkForm, setLinkForm] = useState({ parent_email: "", student_id: "", relation: "Parent" });
-  const [createForm, setCreateForm] = useState<{ email: string; name: string; role: "teacher" | "student" | "parent" }>({
-    email: "",
-    name: "",
-    role: "student",
-  });
 
   const links = useQuery({ queryKey: ["parent-links"], queryFn: () => listParentLinks() });
   const students = useQuery({ queryKey: ["students"], queryFn: () => listStudents() });
@@ -82,89 +69,15 @@ function ParentsPage() {
     },
   });
 
-  const createM = useMutation({
-    mutationFn: (d: typeof createForm) => adminCreateAccount({ data: d }),
-    onSuccess: (res: any) => {
-      toast.success(`Account created. Temp password: ${res.temp_password}`, { duration: 15000 });
-      setCreateOpen(false);
-      setCreateForm({ email: "", name: "", role: "student" });
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const signupUrl = (role: string) => `${origin}/auth?role=${role}&mode=signup`;
-  const copyLink = async (role: string) => {
-    const url = signupUrl(role);
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = url;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
-      toast.success(`${role} signup link copied`);
-    } catch {
-      window.prompt("Copy this link:", url);
-    }
-  };
-
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-6">
       <PageHeader
-        title="Parents & accounts"
-        description="Share signup links, create accounts, and link parents to students."
+        title="Parents"
+        description="Create parent accounts and link them to their children."
         action={
           canManage && (
             <div className="flex gap-2">
-              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline"><UserPlus className="h-4 w-4 mr-1" />Create</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Create account</DialogTitle></DialogHeader>
-                  <div className="space-y-3">
-                    <div>
-                      <Label>Full name</Label>
-                      <Input value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label>Email</Label>
-                      <Input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label>Role</Label>
-                      <Select value={createForm.role} onValueChange={(v: any) => setCreateForm({ ...createForm, role: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="student">Student</SelectItem>
-                          <SelectItem value="parent">Parent</SelectItem>
-                          {isAdmin && <SelectItem value="teacher">Teacher</SelectItem>}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      A temporary password will be shown once. Share it with the user — they can change it after sign-in.
-                    </p>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      onClick={() => createM.mutate(createForm)}
-                      disabled={!createForm.email || !createForm.name || createM.isPending}
-                    >
-                      {createM.isPending ? "Creating…" : "Create account"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
+              <CreateAccountButton role="parent" label="Parent" />
               <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
                 <DialogTrigger asChild>
                   <Button><Plus className="h-4 w-4 mr-1" />Link parent</Button>
@@ -204,40 +117,17 @@ function ParentsPage() {
         }
       />
 
-      {canManage && (
-        <Card className="p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <LinkIcon className="h-4 w-4 text-primary" />
-            <h2 className="font-semibold">Role-specific signup links</h2>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Share these URLs. Anyone who signs up via a link is automatically assigned that role.
-          </p>
-          <div className="grid gap-2">
-            {SIGNUP_ROLES.filter((r) => isAdmin || r.key !== "teacher").map((r) => (
-              <div key={r.key} className="flex items-center gap-2 rounded-md border p-2">
-                <Badge variant="secondary" className="capitalize">{r.label}</Badge>
-                <a
-                  href={signupUrl(r.key)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 truncate text-xs text-primary underline underline-offset-2"
-                >
-                  {signupUrl(r.key)}
-                </a>
-                <Button size="sm" variant="ghost" onClick={() => copyLink(r.key)}>
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+      {canManage && <SignupLinkCard role="parent" label="Parent" />}
 
       <div>
         <p className="text-xs text-muted-foreground mb-2">
           Parents can also self-link to their child from their{" "}
           <Link to="/portal" className="underline">Portal</Link>.
+          {isAdmin && (
+            <> Need to deactivate or change roles?{" "}
+              <Link to="/users" className="underline">Open user management</Link>.
+            </>
+          )}
         </p>
         <Card className="divide-y">
           {links.data && links.data.length === 0 && (
