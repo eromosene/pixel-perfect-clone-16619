@@ -224,5 +224,28 @@ export const adminCreateAccount = createServerFn({ method: "POST" })
       user_metadata: { name: data.name, signup_role: data.role },
     });
     if (cErr) throw new Error(cErr.message);
-    return { ok: true, user_id: created.user?.id, temp_password: password };
+
+    const userId = created.user!.id;
+
+    // Explicitly insert profile + role — do not rely on a trigger that may not exist.
+    // Using upsert so it's idempotent in case a trigger does run.
+    const [profResult, roleResult] = await Promise.all([
+      supabaseAdmin
+        .from("profiles")
+        .upsert(
+          { id: userId, name: data.name, email: data.email, is_active: true },
+          { onConflict: "id" },
+        ),
+      supabaseAdmin
+        .from("user_roles")
+        .upsert(
+          { user_id: userId, role: data.role },
+          { onConflict: "user_id,role" },
+        ),
+    ]);
+
+    if (profResult.error) throw new Error(`Profile insert failed: ${profResult.error.message}`);
+    if (roleResult.error) throw new Error(`Role insert failed: ${roleResult.error.message}`);
+
+    return { ok: true, user_id: userId, temp_password: password };
   });
