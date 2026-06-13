@@ -11,14 +11,15 @@ export type CurrentUser = {
 };
 
 export async function getCurrentUser(): Promise<CurrentUser> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const session = sessionData?.session;
+  // getUser() verifies the JWT via a network call — immune to localStorage race conditions.
+  // getSession() can return null briefly after sign-in because it relies on storage writes.
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (!session?.user) {
+  if (error || !user) {
     throw new Error("Not authenticated");
   }
 
-  const userId = session.user.id;
+  const userId = user.id;
 
   const [{ data: profile }, { data: roles }] = await Promise.all([
     supabase
@@ -31,7 +32,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
 
   return {
     id: userId,
-    email: session.user.email ?? null,
+    email: user.email ?? null,
     name: profile?.name ?? "",
     avatar: profile?.avatar ?? null,
     roles: (roles ?? []).map((r) => r.role as AppRole),

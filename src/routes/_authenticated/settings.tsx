@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
@@ -19,7 +18,6 @@ export const Route = createFileRoute("/_authenticated/settings")({
 });
 
 function SettingsPage() {
-  const qc = useQueryClient();
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
   const fetchUpload = useServerFn(getUploadUrl);
@@ -90,7 +88,9 @@ function SettingsPage() {
     setSigningOut(true);
     try {
       await supabase.auth.signOut();
-      qc.clear();
+      // __root.tsx onAuthStateChange handles removing user queries on SIGNED_OUT.
+      // Don't call qc.clear() here — it wipes everything before the new session
+      // is available, causing a "Not authenticated" race on next sign-in.
       navigate({ to: "/auth", replace: true });
     } catch (err: any) {
       toast.error(err?.message || "Failed to sign out");

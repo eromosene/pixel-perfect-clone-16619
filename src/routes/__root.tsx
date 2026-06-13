@@ -116,11 +116,14 @@ function RootComponent() {
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       if (event === "SIGNED_OUT") {
-        queryClient.clear();
-      } else {
-        queryClient.invalidateQueries();
+        // Only remove user-specific cached queries; don't wipe everything
+        // (queryClient.clear() causes a race where the next sign-in's query
+        // runs before the new session is available in storage).
+        queryClient.removeQueries({ queryKey: ["current-user"] });
+        queryClient.removeQueries({ queryKey: ["profiles"] });
+      } else if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        queryClient.invalidateQueries({ queryKey: ["current-user"] });
       }
     });
     return () => data.subscription.unsubscribe();
