@@ -42,6 +42,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
+  // If authentication fails entirely, redirect to the login page automatically
+  // rather than showing a broken error screen.
+  useEffect(() => {
+    if (error?.message === "Not authenticated") {
+      window.location.replace("/auth");
+    }
+  }, [error]);
+
+  if (error?.message === "Not authenticated") {
+    return null;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
