@@ -1,16 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { Camera, Save, User, Loader2 } from "lucide-react";
+import { Camera, Save, User, Loader2, LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/page-header";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { getCurrentUser } from "@/lib/auth.functions";
 import { getUploadUrl, deleteStorageObject } from "@/lib/upload.functions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function SettingsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: user } = useCurrentUser();
   const fetchUpload = useServerFn(getUploadUrl);
   const deleteObject = useServerFn(deleteStorageObject);
@@ -29,6 +29,7 @@ function SettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatar ?? null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -82,6 +83,18 @@ function SettingsPage() {
       toast.error(err?.message || "Failed to save");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      qc.clear();
+      navigate({ to: "/auth", replace: true });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to sign out");
+      setSigningOut(false);
     }
   }
 
@@ -154,6 +167,26 @@ function SettingsPage() {
         <Button onClick={handleSave} disabled={saving} className="w-full">
           {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
           Save profile
+        </Button>
+      </Card>
+
+      <Card className="p-6 shadow-card">
+        <h2 className="font-semibold text-sm mb-1">Sign out</h2>
+        <p className="text-xs text-muted-foreground mb-4">
+          You will be returned to the login screen.
+        </p>
+        <Button
+          variant="outline"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+        >
+          {signingOut ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <LogOut className="h-4 w-4 mr-2" />
+          )}
+          Sign out
         </Button>
       </Card>
     </div>
