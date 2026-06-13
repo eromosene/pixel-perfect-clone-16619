@@ -5,6 +5,8 @@ export const currentUserQueryOptions = queryOptions({
   queryKey: ["current-user"],
   queryFn: () => getCurrentUser(),
   staleTime: 60_000,
+  retry: 3,
+  retryDelay: 500,
 });
 
 export function useCurrentUser() {

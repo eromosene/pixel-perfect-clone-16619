@@ -47,7 +47,12 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Only auto-redirect on sign-in mode. If the URL has a role or mode=signup,
+  // this is a fresh-account signup link — don't redirect an already-logged-in admin.
+  const isSignupLink = mode === "signup" || !!signupRole;
+
   useEffect(() => {
+    if (isSignupLink) return;
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard", replace: true });
     });
@@ -55,7 +60,7 @@ function AuthPage() {
       if (session) navigate({ to: "/dashboard", replace: true });
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, isSignupLink]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,6 +85,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
+        navigate({ to: "/dashboard", replace: true });
       }
     } catch (err) {
       toast.error((err as Error).message);
