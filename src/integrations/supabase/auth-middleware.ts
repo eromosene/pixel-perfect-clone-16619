@@ -23,14 +23,22 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     }
     
     const request = getRequest();
+    console.log('[auth-middleware] request available:', !!request);
+    console.log('[auth-middleware] request headers available:', !!request?.headers);
 
     if (!request?.headers) {
+      console.error('[auth-middleware] No request headers available');
       throw new Error('Unauthorized: No request headers available');
     }
 
     const authHeader = request.headers.get('authorization');
+    console.log('[auth-middleware] authorization header present:', !!authHeader);
 
     if (!authHeader) {
+      // Log all headers for debugging
+      const allHeaders: Record<string, string> = {};
+      request.headers.forEach((val, key) => { allHeaders[key] = val; });
+      console.error('[auth-middleware] No authorization header. Headers received:', JSON.stringify(allHeaders));
       throw new Error('Unauthorized: No authorization header provided');
     }
 
@@ -42,6 +50,8 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     if (!token) {
       throw new Error('Unauthorized: No token provided');
     }
+
+    console.log('[auth-middleware] token extracted, length:', token.length);
 
     const supabase = createClient<Database>(
       SUPABASE_URL!,
@@ -61,7 +71,9 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     );
 
     const { data, error } = await supabase.auth.getUser(token);
+    console.log('[auth-middleware] getUser result - user:', !!data?.user, 'error:', error?.message);
     if (error || !data?.user) {
+      console.error('[auth-middleware] getUser failed:', error);
       throw new Error('Unauthorized: Invalid token');
     }
 
